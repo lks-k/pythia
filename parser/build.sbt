@@ -10,13 +10,3 @@ lazy val root = project
     scalacOptions ++= Seq("-deprecation"),
     libraryDependencies += "org.parboiled" %% "parboiled" % "2.4.1"
   )
-
-// lazy val root = (project in file("."))
-//   .settings(
-//     name := "probrogs",
-//     version := "0.1",
-//     scalaVersion := "3.2.2",
-//     libraryDependencies ++= Seq(
-//       "org.parboiled" %% "parboiled2" % parboiledVersion
-//     )
-//   )
