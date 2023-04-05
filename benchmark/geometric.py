@@ -18,7 +18,7 @@ c = 0
 x = 1 
 
 while x == 1:
-    if bernoulli.rvs(0.5): 
+    if bernoulli(0.5).rvs(): 
         x = 0 
     else: 
         x = 1
