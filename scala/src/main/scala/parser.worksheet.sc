@@ -1,88 +1,98 @@
 import scala.io.Source
 import probrogs.*
-import pythonparse.*
+import _root_.{pythonparse => PP}
 import fastparse.Parsed
 import scala.annotation.targetName
 import scala.math.BigInt
 
+System.getProperty("user.dir")
+
+import fastparse.~
+import fastparse.NoWhitespace.*
+def parseExp[$: fastparse.P] = pythonparse.Expressions.expr(fastparse.P.current) ~ fastparse.End
+
 val p = fastparse
   .parse(
-    Source.fromFile("../benchmark/geometric.py").mkString,
+    Source.fromFile("/home/wasowski/work/2023-probrogs/benchmark/flip.py").mkString,
     pythonparse.Statements(0).file_input
   )
   .get
   .value
   .toList
 
-def python2pgcl(p: List[Ast.stmt]): Stm =
+val b = fastparse.parse("bernoulli(0.5).rvs()", parseExp)
+  .get
+  .value
+
+def python2pgcl(p: List[PP.Ast.stmt]): Stm =
   stmtList2pgcl(p)
 
-def stmt2pgcl(s: Ast.stmt): List[Stm] = s match
-  case _: Ast.stmt.FunctionDef =>
+def stmt2pgcl(s: PP.Ast.stmt): List[Stm] = s match
+  case _: PP.Ast.stmt.FunctionDef =>
     throw NotImplementedError("Function definitions are not supported")
 
-  case _: Ast.stmt.ClassDef =>
+  case _: PP.Ast.stmt.ClassDef =>
     throw NotImplementedError("Class definitions are not supported")
 
-  case _: Ast.stmt.Return =>
+  case _: PP.Ast.stmt.Return =>
     throw NotImplementedError("Function definitions are not supported")
 
-  case _: Ast.stmt.Delete =>
+  case _: PP.Ast.stmt.Delete =>
     throw NotImplementedError("Python 'del' is not supported")
 
-  case Ast.stmt.Assign(Seq(Ast.expr.Name(id, ctx)), e) =>
+  case PP.Ast.stmt.Assign(Seq(PP.Ast.expr.Name(id, ctx)), e) =>
     List(Stm.Assign(id.name.toId, expr2pgcl(e)))
 
-  case Ast.stmt.Assign(targets, _) if targets.sizeIs > 1 =>
+  case PP.Ast.stmt.Assign(targets, _) if targets.sizeIs > 1 =>
     throw NotImplementedError("Non-single-target assignemts are not supported")
 
-  case Ast.stmt.Assign(t, e) =>
+  case PP.Ast.stmt.Assign(t, e) =>
     throw NotImplementedError(s"Assigning target other than name not supported")
 
-  case Ast.stmt.AugAssign(Ast.expr.Name(id, ctx), op, value) =>
+  case PP.Ast.stmt.AugAssign(PP.Ast.expr.Name(id, ctx), op, value) =>
     Stm.Assign(
       id.name.toId,
       NDist.BOperator(NDist.Var(id.name.toId), op2pgcl(op), expr2pgcl(value))
     ) :: Nil
 
-  case Ast.stmt.AugAssign(_, _, _) =>
+  case PP.Ast.stmt.AugAssign(_, _, _) =>
     throw NotImplementedError(s"Assigning target other than name not supported")
 
-  case Ast.stmt.Print(dest, values, nl) =>
+  case PP.Ast.stmt.Print(dest, values, nl) =>
     Nil // we ignore print statements
 
-  case _: Ast.stmt.For =>
+  case _: PP.Ast.stmt.For =>
     throw NotImplementedError("Python for-loops not supported yet")
 
-  case Ast.stmt.While(test, body, Seq()) =>
+  case PP.Ast.stmt.While(test, body, Seq()) =>
     List(Stm.While(expr2pgcl(test), stmtList2pgcl(body)))
 
-  case Ast.stmt.While(test, body, orelse) =>
+  case PP.Ast.stmt.While(test, body, orelse) =>
     throw NotImplementedError("Python while-loops with orelse not supported")
 
-  case Ast.stmt.If(test, body, orelse) =>
+  case PP.Ast.stmt.If(test, body, orelse) =>
     List(Stm.If(expr2pgcl(test), stmtList2pgcl(body), stmtList2pgcl(orelse)))
 
-  case _: Ast.stmt.With =>
+  case _: PP.Ast.stmt.With =>
     throw NotImplementedError("Python 'with' statement is not supported yet")
 
-  case _: Ast.stmt.Import =>
+  case _: PP.Ast.stmt.Import =>
     Nil // ignore imports, as they are useful for exec, but not useful for pgcl
 
-  case _: Ast.stmt.ImportFrom =>
+  case _: PP.Ast.stmt.ImportFrom =>
     Nil // ignore imports, as they are useful for exec, but not useful for pgcl
 
-  case Ast.stmt.Expr(
-    Ast.expr.Call(
-      Ast.expr.Attribute(
-        Ast.expr.Attribute(
-          Ast.expr.Name(Ast.identifier("np"), _),
-          Ast.identifier("random"), _), 
-        Ast.identifier(seed), _),
+  case PP.Ast.stmt.Expr(
+    PP.Ast.expr.Call(
+      PP.Ast.expr.Attribute(
+        PP.Ast.expr.Attribute(
+          PP.Ast.expr.Name(PP.Ast.identifier("np"), _),
+          PP.Ast.identifier("random"), _), 
+        PP.Ast.identifier(seed), _),
       Seq(initial), Seq(), None, None)) =>
     Nil // skip random number initialization (np.random.seed(...))
 
-  case _: Ast.stmt.Expr =>
+  case _: PP.Ast.stmt.Expr =>
     Nil // ignore expression statements as expressions are pure so far
 
   case _ =>
@@ -91,116 +101,123 @@ def stmt2pgcl(s: Ast.stmt): List[Stm] = s match
 def stmtList2stmt(ss: Seq[Stm]): Stm =
   ss.foldRight(Stm.Skip)(Stm.Seq.apply)
 
-def stmtList2pgcl(ss: Seq[Ast.stmt]): Stm =
+def stmtList2pgcl(ss: Seq[PP.Ast.stmt]): Stm =
   stmtList2stmt(ss.flatMap(stmt2pgcl))
 
-def op2pgcl(op: Ast.operator): Op = op match
-  case Ast.operator.Add      => AOp.Plus
-  case Ast.operator.Sub      => AOp.Minus
-  case Ast.operator.Mult     => AOp.Mult
-  case Ast.operator.Div      => AOp.Div
-  case Ast.operator.Mod      => AOp.Mod
-  case Ast.operator.Pow      => AOp.Pow
-  case Ast.operator.LShift   => AOp.LShift
-  case Ast.operator.RShift   => AOp.RShift
-  case Ast.operator.BitOr    => AOp.BitOr
-  case Ast.operator.BitXor   => AOp.BitXor
-  case Ast.operator.BitAnd   => AOp.BitAnd
-  case Ast.operator.FloorDiv => AOp.FloorDiv
+def op2pgcl(op: PP.Ast.operator): Op = op match
+  case PP.Ast.operator.Add      => AOp.Plus
+  case PP.Ast.operator.Sub      => AOp.Minus
+  case PP.Ast.operator.Mult     => AOp.Mult
+  case PP.Ast.operator.Div      => AOp.Div
+  case PP.Ast.operator.Mod      => AOp.Mod
+  case PP.Ast.operator.Pow      => AOp.Pow
+  case PP.Ast.operator.LShift   => AOp.LShift
+  case PP.Ast.operator.RShift   => AOp.RShift
+  case PP.Ast.operator.BitOr    => AOp.BitOr
+  case PP.Ast.operator.BitXor   => AOp.BitXor
+  case PP.Ast.operator.BitAnd   => AOp.BitAnd
+  case PP.Ast.operator.FloorDiv => AOp.FloorDiv
 
-def boolop2pgcl(op: Ast.boolop): BOp = op match
-  case Ast.boolop.And => BOp.And
-  case Ast.boolop.Or  => BOp.Or
+def boolop2pgcl(op: PP.Ast.boolop): BOp = op match
+  case PP.Ast.boolop.And => BOp.And
+  case PP.Ast.boolop.Or  => BOp.Or
 
-def cmpop2pgcl(op: Ast.cmpop): ROp = op match
-  case Ast.cmpop.Eq    => ROp.Eq
-  case Ast.cmpop.NotEq => ROp.NEq
-  case Ast.cmpop.Lt    => ROp.Lt
-  case Ast.cmpop.LtE   => ROp.LEq
-  case Ast.cmpop.Gt    => ROp.Gt
-  case Ast.cmpop.GtE   => ROp.GEq
+def cmpop2pgcl(op: PP.Ast.cmpop): ROp = op match
+  case PP.Ast.cmpop.Eq    => ROp.Eq
+  case PP.Ast.cmpop.NotEq => ROp.NEq
+  case PP.Ast.cmpop.Lt    => ROp.Lt
+  case PP.Ast.cmpop.LtE   => ROp.LEq
+  case PP.Ast.cmpop.Gt    => ROp.Gt
+  case PP.Ast.cmpop.GtE   => ROp.GEq
 
-  case Ast.cmpop.Is =>
+  case PP.Ast.cmpop.Is =>
     throw NotImplementedError("The 'is' operator not supported")
-  case Ast.cmpop.IsNot =>
+  case PP.Ast.cmpop.IsNot =>
     throw NotImplementedError("The 'is not' operator not supported")
-  case Ast.cmpop.In =>
+  case PP.Ast.cmpop.In =>
     throw NotImplementedError("The 'in' operator not supported")
-  case Ast.cmpop.NotIn =>
+  case PP.Ast.cmpop.NotIn =>
     throw NotImplementedError("The 'not in' operator not supported")
 
-def unaryop2pgcl(op: Ast.unaryop): UOp = op match
-  case Ast.unaryop.Invert => UOp.BitNot
-  case Ast.unaryop.Not    => UOp.Not
-  case Ast.unaryop.UAdd   => UOp.Plus
-  case Ast.unaryop.USub   => UOp.Minus
+def unaryop2pgcl(op: PP.Ast.unaryop): UOp = op match
+  case PP.Ast.unaryop.Invert => UOp.BitNot
+  case PP.Ast.unaryop.Not    => UOp.Not
+  case PP.Ast.unaryop.UAdd   => UOp.Plus
+  case PP.Ast.unaryop.USub   => UOp.Minus
 
-def expr2pgcl(e: Ast.expr): Exp = e match
-  case Ast.expr.BoolOp(op, Seq(left, right)) =>
+def obj2pgcl(a: Any) = a match 
+  case n: Int => NDist.CstI(n)
+  case x: Double => NDist.CstF(x)
+  case x: BigDecimal => NDist.CstF(x.toDouble)
+  case _ => throw NotImplementedError(s"An unsupported literal type '${a.getClass}'")
+
+def expr2pgcl(e: PP.Ast.expr): Exp = e match
+  case PP.Ast.expr.BoolOp(op, Seq(left, right)) =>
     NDist.BOperator(expr2pgcl(left), boolop2pgcl(op), expr2pgcl(right))
 
-  case Ast.expr.BoolOp(op, _) =>
+  case PP.Ast.expr.BoolOp(op, _) =>
     throw NotImplementedError(s"Nonbinary Boolean operators not supported: $e")
 
-  case Ast.expr.BinOp(left, op, right) =>
+  case PP.Ast.expr.BinOp(left, op, right) =>
     NDist.BOperator(expr2pgcl(left), op2pgcl(op), expr2pgcl(right))
 
-  case Ast.expr.UnaryOp(op, operand) =>
+  case PP.Ast.expr.UnaryOp(op, operand) =>
     NDist.UOperator(unaryop2pgcl(op), expr2pgcl(operand))
 
-  case Ast.expr.Lambda(args, body) =>
+  case PP.Ast.expr.Lambda(args, body) =>
     throw NotImplementedError(s"Python λ-expressions are not supported!")
 
-  case Ast.expr.IfExp(test, body, orelse) =>
+  case PP.Ast.expr.IfExp(test, body, orelse) =>
     throw NotImplementedError(s"Python ternary expressions not supported!")
 
-  case Ast.expr.Dict(keys, values) =>
+  case PP.Ast.expr.Dict(keys, values) =>
     throw NotImplementedError(s"Python dictionary expressions not supported!")
 
-  case Ast.expr.Set(elts) =>
+  case PP.Ast.expr.Set(elts) =>
     throw NotImplementedError(s"Python set expressions not supported!")
 
-  case Ast.expr.ListComp(elt, generators) =>
+  case PP.Ast.expr.ListComp(elt, generators) =>
     throw NotImplementedError(s"Python list comprehensions not supported!")
 
-  case Ast.expr.SetComp(elt, generators) =>
+  case PP.Ast.expr.SetComp(elt, generators) =>
     throw NotImplementedError(s"Python set comprehensions not supported!")
 
-  case Ast.expr.DictComp(key, value, generators) =>
+  case PP.Ast.expr.DictComp(key, value, generators) =>
     throw NotImplementedError(s"Python dict comprehensions not supported!")
 
-  case Ast.expr.GeneratorExp(elt, generators) =>
+  case PP.Ast.expr.GeneratorExp(elt, generators) =>
     throw NotImplementedError(s"Python generator expressions not supported!")
 
-  case Ast.expr.Yield(value) =>
+  case PP.Ast.expr.Yield(value) =>
     throw NotImplementedError(s"Python yield not supported!")
 
-  case Ast.expr.Compare(left, Seq(op), Seq(right)) =>
+  case PP.Ast.expr.Compare(left, Seq(op), Seq(right)) =>
     NDist.BOperator(expr2pgcl(left), cmpop2pgcl(op), expr2pgcl(right))
 
-  case _: Ast.expr.Compare =>
+  case _: PP.Ast.expr.Compare =>
     throw NotImplementedError(s"Non-binary comparisons are not supported")
     
-  case Ast.expr.Call(
-        Ast.expr.Attribute(
-          Ast.expr.Name(Ast.identifier("bernoulli"), ctx),
-          Ast.identifier("rvs"), _),
-        Seq(bias), Seq(), None, None) =>
-    Dist.Bernoulli(expr2pgcl(bias))
+  case PP.Ast.expr.Call(
+        PP.Ast.expr.Attribute(
+          PP.Ast.expr.Call(
+            PP.Ast.expr.Name(PP.Ast.identifier("bernoulli"), ctx),
+            List(PP.Ast.expr.Num(bias)), Nil, None, None),
+          PP.Ast.identifier("rvs"), _), Nil, Nil, None, None) =>
+    Dist.Bernoulli(obj2pgcl(bias))
 
   // case Ast.expr.Repr(value: expr) => ???
 
-  case _: Ast.expr.Call =>
+  case _: PP.Ast.expr.Call =>
     NDist.CstI(43)
     // TODO throw NotImplementedError(s"General function calls are not supported")
 
-  case Ast.expr.Num(n: Int) =>
+  case PP.Ast.expr.Num(n: Int) =>
     NDist.CstI(n)
 
-  case Ast.expr.Num(n: BigInt) if n.isValidInt =>
+  case PP.Ast.expr.Num(n: BigInt) if n.isValidInt =>
     NDist.CstI(n.toInt)
 
-  case Ast.expr.Num(x: Double) =>
+  case PP.Ast.expr.Num(x: Double) =>
     NDist.CstF(x)
 
   // case Ast.expr.Str(s: string)    => ??? // need to raw: specify, unicode, etc?
@@ -210,13 +227,13 @@ def expr2pgcl(e: Ast.expr): Exp = e match
   // case Ast.expr.Attribute(value: expr, attr: identifier, ctx: expr_context) =>
   //   ???
   // case Ast.expr.Subscript(value: expr, slice: slice, ctx: expr_context) => ???
-  case Ast.expr.Name(id, ctx) =>
+  case PP.Ast.expr.Name(id, ctx) =>
     NDist.Var(id.name.toId)
 
-  case Ast.expr.List(elts, ctx) =>
+  case PP.Ast.expr.List(elts, ctx) =>
     throw NotImplementedError("Lists literals are not supported")
 
-  case Ast.expr.Tuple(elts, ctx) =>
+  case PP.Ast.expr.Tuple(elts, ctx) =>
     throw NotImplementedError("Tuple literals are not supported")
 
   case _ => NDist.CstI(42)
@@ -317,7 +334,11 @@ def unparse(e: Exp): String = e match
   case NDist.Var(name) =>
     name.toString
 
-val str = unparse(0)(python2pgcl(p))
+val pgcl = python2pgcl(p)
+val str = unparse(0)(pgcl)
+
 print(str)
 
 p(4)
+
+
