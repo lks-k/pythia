@@ -3,6 +3,12 @@ package probrogs
 import org.scalacheck.{Arbitrary, Gen, Prop}, Arbitrary.*, Prop.*
 import probrogs.Dist.*, NDist.*, Stm.*
 
+import pythonparse.Ast.expr.{Call => pCall, Attribute => pAttribute, 
+                             Name => pName, Num => pNum}
+import pythonparse.Ast.stmt.{Import, If => pIf, Assign => pAssign}
+import pythonparse.Ast.expr_context.{Load => pLoad}
+import pythonparse.Ast.{identifier => pIdentifier}
+
 object ParserSpec
   extends org.scalacheck.Properties("Parse"): 
 
@@ -17,4 +23,3 @@ object ParserSpec
       Skip
     )
     result == expected
-
