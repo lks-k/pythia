@@ -17,7 +17,38 @@ package probrogs
 
 import _root_.{pythonparse => PP}
 
-def python2pgcl(p: List[PP.Ast.stmt]): Stm =
+/** Parse a file containing a Python program */
+def pythonFile2pgcl(path: String): Stm = 
+  import scala.io.Source
+  val ast = fastparse
+    .parse(Source.fromFile(path).mkString, pythonparse.Statements.file_input)
+    .get
+    .value
+  python2pgcl(ast)
+
+/** Parse a string containing a Python program. */ 
+def python2pgcl(s: String): Stm = 
+  import fastparse.~
+  import fastparse.NoWhitespace.*
+  def parseSuite[$: fastparse.P] = 
+    pythonparse.Statements.file_input(fastparse.P.current) // ~ fastparse.End
+  val ast = fastparse.parse(s, parseSuite)
+    .get
+    .value
+  python2pgcl(ast)
+
+/** Parse a string containing a Python expression. */
+def pythonExpr2pgcl(s: String): Exp = 
+  import fastparse.~
+  import fastparse.NoWhitespace.*
+  def parseExp[$: fastparse.P] = 
+    pythonparse.Expressions.expr(fastparse.P.current) ~ fastparse.End
+  val ast = fastparse.parse(s, parseExp)
+    .get
+    .value
+  expr2pgcl(ast)
+
+def python2pgcl(p: Seq[PP.Ast.stmt]): Stm =
   stmtList2pgcl(p)
 
 def stmt2pgcl(s: PP.Ast.stmt): List[Stm] = s match
@@ -100,11 +131,11 @@ def stmt2pgcl(s: PP.Ast.stmt): List[Stm] = s match
   case _ =>
     throw NotImplementedError(s"Statement not supported $s")
 
-def stmtList2stmt(ss: Seq[Stm]): Stm =
+def stmSeq2stm(ss: Seq[Stm]): Stm =
   ss.foldRight(Stm.Skip)(Stm.Seq.apply)
 
 def stmtList2pgcl(ss: Seq[PP.Ast.stmt]): Stm =
-  stmtList2stmt(ss.flatMap(stmt2pgcl))
+  stmSeq2stm(ss.flatMap(stmt2pgcl))
 
 def op2pgcl(op: PP.Ast.operator): Op = op match
   case PP.Ast.operator.Add      => AOp.Plus
