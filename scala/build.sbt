@@ -8,5 +8,6 @@ lazy val root = project
     version := "0.1.0",
     scalaVersion := "3.2.2",
     scalacOptions ++= Seq("-deprecation"),
-    libraryDependencies += "com.lihaoyi" %% "pythonparse" % "3.0.1"
+    libraryDependencies += "com.lihaoyi" %% "pythonparse" % "3.0.1",
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.3" % Test
   )
