@@ -8,5 +8,5 @@ lazy val root = project
     version := "0.1.0",
     scalaVersion := "3.2.2",
     scalacOptions ++= Seq("-deprecation"),
-    libraryDependencies += "org.parboiled" %% "parboiled" % "2.4.1"
+    libraryDependencies += "com.lihaoyi" %% "pythonparse" % "3.0.1"
   )
