@@ -17,25 +17,31 @@ package probrogs
 
 import _root_.{pythonparse => PP}
 
-/** Parse a file containing a Python program */
-def pythonFile2pgcl(path: String): Stm = 
+/** Parse a file containing a Python program to pythoneparse abstract syntax */
+def parsePythonFile(path: String) = 
   import scala.io.Source
-  val ast = fastparse
+  fastparse
     .parse(Source.fromFile(path).mkString, pythonparse.Statements.file_input)
     .get
     .value
-  python2pgcl(ast)
 
-/** Parse a string containing a Python program. */ 
-def python2pgcl(s: String): Stm = 
+/** Parse a file containing a Python program to PGCL abstract syntax */
+def pythonFile2pgcl(path: String): Stm = 
+  python2pgcl(parsePythonFile(path))
+
+/** Parse a string containing a Python program to pythoneparse syntax. */ 
+def parsePython(s: String) = 
   import fastparse.~
   import fastparse.NoWhitespace.*
   def parseSuite[$: fastparse.P] = 
     pythonparse.Statements.file_input(fastparse.P.current) // ~ fastparse.End
-  val ast = fastparse.parse(s, parseSuite)
+  fastparse.parse(s, parseSuite)
     .get
     .value
-  python2pgcl(ast)
+
+/** Parse a string containing a Python program to pgcl syntax. */ 
+def python2pgcl(s: String): Stm = 
+  python2pgcl(parsePython(s))
 
 /** Parse a string containing a Python expression. */
 def pythonExpr2pgcl(s: String): Exp = 
