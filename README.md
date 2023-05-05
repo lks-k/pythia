@@ -69,3 +69,14 @@ probros.benchmark.pgcl.all("flip")
 probros.benchmark.pgcl("flip")
 probros.benchmark.pgcl.flip
 ```
+
+An example of a scala-cli file configured to use this data (the jar
+file produce with `sbt package` is assumed to be dropped into the same
+directory as the example file):
+```scala
+//> using jar "probros_3-0.1.0.jar"
+//> using dep "com.lihaoyi::pythonparse:3.0.1"
+
+@main def main(): Unit =
+  print(probros.benchmark.pgcl.flip.toString)
+```
