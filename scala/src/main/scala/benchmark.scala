@@ -18,33 +18,42 @@
 package probros
 package benchmark
 
-trait PyFiles[T]: 
-  val _flip = "flip"
+case class Benchmark(name: String): 
+  lazy val text = this.load(this.name)
+  lazy val python = parsePython(this.text)
+  lazy val pgcl = stmtList2pgcl(this.python)
+  lazy val unparsed = unparse(0)(this.pgcl)
 
-  val names = List(_flip)
-
-  def flip = this.all(_flip)
-
-  def all: Map[String, T]
-
-  def apply(name: String): T = 
-    this.all(name)
-
-  protected def load (name: String): String =
-    val r = this.getClass.getClassLoader.getResourceAsStream(name)
+  private def load (name: String): String =
+    val r = this.getClass.getClassLoader.getResourceAsStream(name+".py")
     java.util.Scanner(r).useDelimiter("\\A").next
 
-object files extends PyFiles[String]:
-  lazy val all = names.map { n => (n, n + ".py") }.toMap
+val flip = Benchmark("flip")
+
+trait PyFiles[T]: 
+
+  val benchmarks: List[Benchmark] = List(
+    benchmark.flip
+  )
+
+  def flip: T = this.all(benchmark.flip.name)
+
+  def all: Map[String, T]
+  def apply(name: String): T = this.all(name)
+
+
+
+object name extends PyFiles[String]:
+  lazy val all = this.benchmarks.map { b => (b.name, b.name) }.toMap
 
 object text extends PyFiles[String]:
-  lazy val all = files.all.view.mapValues(load).toMap
+  lazy val all = this.benchmarks.map { b => (b.name, b.text) }.toMap
 
 object python extends PyFiles[Seq[pythonparse.Ast.stmt]]:
-  lazy val all = text.all.view.mapValues(parsePython).toMap
+  lazy val all = this.benchmarks.map { b => (b.name, b.python) }.toMap
 
 object pgcl extends PyFiles[Stm]: 
-  lazy val all = python.all.view.mapValues(stmtList2pgcl).toMap
+  lazy val all = this.benchmarks.map { b => (b.name, b.pgcl) }.toMap
 
 object unparsed extends PyFiles[String]:
-  lazy val all = pgcl.all.view.mapValues(unparse(0)).toMap
+  lazy val all = this.benchmarks.map { b => (b.name, b.unparsed) }.toMap
