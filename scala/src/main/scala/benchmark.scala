@@ -28,15 +28,18 @@ case class Benchmark(name: String):
     val r = this.getClass.getClassLoader.getResourceAsStream(name+".py")
     java.util.Scanner(r).useDelimiter("\\A").next
 
-val flip = Benchmark("flip")
+val flip      = Benchmark("flip")
+val geometric = Benchmark("geometric")
 
 trait PyFiles[T]: 
 
   val benchmarks: List[Benchmark] = List(
-    benchmark.flip
+    benchmark.flip,
+    benchmark.geometric,
   )
 
-  def flip: T = this.all(benchmark.flip.name)
+  def flip     : T = this.all(benchmark.flip.name)
+  def geometric: T = this.all(benchmark.geometric.name)
 
   def all: Map[String, T]
   def apply(name: String): T = this.all(name)
