@@ -10,7 +10,7 @@ lazy val pyFiles = new File("../data/")
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "probrogs",
+    name := "probros",
     description := "Scala API for the probrogs benchmark",
     version := "0.1.0",
     scalaVersion := "3.2.2",
