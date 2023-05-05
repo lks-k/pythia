@@ -17,6 +17,10 @@ model).
 
 # Scala API
 
+The easiest way to access the benchmark examples in Scala is to
+install the project's API library. It already contains all the files,
+and the code to parse them.
+
 Install the jar file in your project. The jar file contains code for
 abstract syntax, parsing, and unparsing the benchmark files, as well
 as all the benchmark files themselves, so you should not need anything
