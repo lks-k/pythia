@@ -1,4 +1,4 @@
-package probrogs
+package probros
 
 opaque type Probability = Double
 opaque type Id = String

@@ -15,24 +15,36 @@
   limitations under the License.
 */
 
-package probrogs
+package probros
 package benchmark
 
-object path:
-  lazy val flip = "benchmark/flip.py"
-  lazy val all = List(flip)
+trait PyFiles[T]: 
+  val _flip = "flip"
 
-object python:
-  lazy val flip = all.get(path.flip)
-  lazy val all = path.all.zip(path.all.map(parsePythonFile)).toMap
+  val names = List(_flip)
 
-object pgcl: 
-  lazy val flip = all.get(path.flip)
-  lazy val all = python.all.view.mapValues(stmtList2pgcl)
+  def flip = this.all(_flip)
 
-object unparsed:
-  lazy val flip = all.get(path.flip)
-  lazy val all = pgcl.all.view.mapValues(unparse(0))
+  def all: Map[String, T]
 
+  def apply(name: String): T = 
+    this.all(name)
 
+  protected def load (name: String): String =
+    val r = this.getClass.getClassLoader.getResourceAsStream(name)
+    java.util.Scanner(r).useDelimiter("\\A").next
 
+object files extends PyFiles[String]:
+  lazy val all = names.map { n => (n, n + ".py") }.toMap
+
+object text extends PyFiles[String]:
+  lazy val all = files.all.view.mapValues(load).toMap
+
+object python extends PyFiles[Seq[pythonparse.Ast.stmt]]:
+  lazy val all = text.all.view.mapValues(parsePython).toMap
+
+object pgcl extends PyFiles[Stm]: 
+  lazy val all = python.all.view.mapValues(stmtList2pgcl).toMap
+
+object unparsed extends PyFiles[String]:
+  lazy val all = pgcl.all.view.mapValues(unparse(0)).toMap
