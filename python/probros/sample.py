@@ -77,12 +77,12 @@ def observe(value, address: str = None, distribution: Distribution = Dirac(True)
     # return observed value
     return value
 
-def factor(logprob, address: str = None):
+def factor(logfactor, address: str = None):
     if address is None:
         address = f"factor:{len(_TRACE)}"
 
     # store result in global trace
     _TRACE[address] = {
         'kind': 'factor',
-        'logprob': logprob
+        'logprob': logfactor
     }

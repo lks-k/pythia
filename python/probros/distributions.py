@@ -73,3 +73,15 @@ class Normal(Distribution):
         return -1/2 * ((value - self.mu) /self.sigma)**2 - math.log(self.sigma * math.sqrt(2*math.pi))
     def __repr__(self) -> str:
         return f"Normal({self.mu}, {self.sigma})"
+    
+class IID(Distribution):
+    def __init__(self, base: Distribution, n: int) -> None:
+        self.base = base
+        self.n = n
+    def sample(self):
+        return [self.base.sample() for _ in range(self.n)]
+    def logprob(self, value) -> float:
+        assert isinstance(value, list) and len(value) == self.n
+        return sum(self.base.logprob(value[i]) for i in range(self.n))
+    def __repr__(self) -> str:
+        return f"IID({self.base}, {self.n})"
