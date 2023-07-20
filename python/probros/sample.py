@@ -1,7 +1,22 @@
 from .distributions import *
 
 # global variables are ugly, but simple (pyro uses a similar method)
-_TRACE = {}
+_TRACE = None
+class Trace:
+    def __init__(self) -> None:
+        self.trace = []
+        self.logprob = 0.
+        self.input = None
+        self.retval = None
+    def __repr__(self) -> str:
+        s = f"Trace(input={self.input})\n"
+        for i, entry in enumerate(self.trace):
+            s += f"{i}.: {entry}\n"
+        s += f"retval={self.retval}"
+        s += f"logprob: {self.logprob}"
+        return s
+
+
 
 # We define a decorator
 # @trace
@@ -13,18 +28,18 @@ def trace(func):
         global _TRACE
         
         # reset trace
-        _TRACE = {}
+        _TRACE = Trace()
 
         # run model function
         retval = func(*args, **kwargs)
 
         # sum up log probabilities, i.e. logprob is joint probability of model p(X,Y=y)
-        logprob = sum(entry['logprob'] for _, entry in _TRACE.items())
+        logprob = sum(entry['logprob'] for entry in _TRACE.trace)
 
         # store some more information
-        _TRACE['INPUT'] = (args, kwargs)
-        _TRACE['RETVAL'] = retval
-        _TRACE['LOGPROB'] = logprob
+        _TRACE.input = (args, kwargs)
+        _TRACE.retval = retval
+        _TRACE.logprob = logprob
 
         return retval, logprob, _TRACE
     
@@ -49,40 +64,43 @@ def sample(address: str, distribution: Distribution):
     logprob = distribution.logprob(value)
 
     # store result in global trace
-    _TRACE[address] = {
+    _TRACE.trace.append({
+        'address': address,
         'kind': 'sample',
         'value': value,
         'logprob': logprob,
         'distribution': distribution
-    }
+    })
     # return sampled value
     return value
 
 def observe(value, address: str = None, distribution: Distribution = Dirac(True)):
     if address is None:
         # we provide default (unique) addresses
-        address = f"observe_{len(_TRACE)}"
+        address = f"observe_{len(_TRACE.trace)}"
 
     # compute log probability of observed value
     logprob = distribution.logprob(value)
 
     # store result in global trace
-    _TRACE[address] = {
+    _TRACE.trace.append({
+        'address': address,
         'kind': 'observe',
         'value': value,
         'logprob': logprob,
         'distribution': distribution
-    }
+    })
 
     # return observed value
     return value
 
 def factor(logfactor, address: str = None):
     if address is None:
-        address = f"factor:{len(_TRACE)}"
+        address = f"factor:{len(_TRACE.trace)}"
 
     # store result in global trace
-    _TRACE[address] = {
+    _TRACE.trace.append({
+        'address': address,
         'kind': 'factor',
         'logprob': logfactor
-    }
+    })
