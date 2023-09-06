@@ -12,7 +12,7 @@ class Trace:
         s = f"Trace(input={self.input})\n"
         for i, entry in enumerate(self.trace):
             s += f"{i}.: {entry}\n"
-        s += f"retval={self.retval}"
+        s += f"retval={self.retval}\n"
         s += f"logprob: {self.logprob}"
         return s
 
@@ -104,3 +104,15 @@ def factor(logfactor, address: str = None):
         'kind': 'factor',
         'logprob': logfactor
     })
+
+
+class Vector:
+    def __init__(self, n: int, t=None, fill=None):
+        self.n = n
+        self.list = [fill] * n
+    def __len__(self):
+        return self.n
+    def __getitem__(self, key):
+        return self.list[key]
+    def __setitem__(self, key, value):
+        self.list[key] = value
