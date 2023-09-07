@@ -1,4 +1,4 @@
-from .distributions import *
+from .scipy_distributions import Distribution, Dirac
 
 # global variables are ugly, but simple (pyro uses a similar method)
 _TRACE = None

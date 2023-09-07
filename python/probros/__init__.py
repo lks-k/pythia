@@ -1,3 +1,3 @@
 # from .distributions import *
-from .pyro_distributions import *
+from .scipy_distributions import *
 from .sample import *
