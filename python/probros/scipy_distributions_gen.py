@@ -123,7 +123,7 @@ distributions = [
         "continuous"
     ],
     [
-        "MutlivariateNormal",
+        "MultivariateNormal",
         "stats.multivariate_normal",
         ["mean", "cov"],
         {"mean": "mean", "cov": "cov"},
@@ -148,9 +148,12 @@ def generate(name, scipy_stats_class, params, internal_param_map, t):
 
     s += "\n"
     s += f"{tab}def _logprob(self, value):\n"
-    s += f"{tab}{tab}return {scipy_stats_class}.{lp}(value, {internal_params})"
+    s += f"{tab}{tab}return {scipy_stats_class}.{lp}(value, {internal_params})\n"
 
-    s += "\n\n"
+    s += "\n"
+    s += f"{tab}def __repr__(self):\n"
+    fstr = "f\"" + ", ".join(k + "={self." + k + "}" for k,_ in internal_param_map.items()) + "\""
+    s += f"{tab}{tab}return \"{name}(\" + {fstr} + \")\"\n"
 
     return s
 
@@ -158,9 +161,13 @@ if __name__ == "__main__":
     with open("scipy_distributions_base.py", "r") as f:
         base = f.read()
 
+    for distribution in distributions:
+        print("-", distribution[0])
+
     with open("scipy_distributions.py", "w") as f:
         f.write("# This is an auto-generated file. Do not modify.\n\n")
         f.write(base)
 
         for distribution in distributions:
+            f.write("\n")
             f.write(generate(*distribution))

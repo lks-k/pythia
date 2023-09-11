@@ -1,4 +1,7 @@
 from .scipy_distributions import Distribution, Dirac
+import numpy as np
+from tqdm import tqdm
+from collections import defaultdict
 
 # global variables are ugly, but simple (pyro uses a similar method)
 _TRACE = None
@@ -15,7 +18,10 @@ class Trace:
         s += f"retval={self.retval}\n"
         s += f"logprob: {self.logprob}"
         return s
-
+    def __getitem__(self, i):
+        return self.trace[i]
+    def entries_by_address(self):
+        return {entry['address']: entry for entry in self.trace}
 
 
 # We define a decorator
@@ -23,7 +29,7 @@ class Trace:
 # def func():
 #     ...
 # which traces all sample, observe, and factor statements
-def trace(func):
+def probabilistic_program(func):
     def wrapper(*args, **kwargs):
         global _TRACE
         
@@ -57,6 +63,10 @@ def trace(func):
 # Random value draws are logged in the trace at `address`.
 
 def sample(address: str, distribution: Distribution):
+    if address is None:
+        # we provide default (unique) addresses
+        address = f"sample_{len(_TRACE.trace)}"
+
     # draw random variable according to distribution
     value = distribution.sample()
 
@@ -105,6 +115,41 @@ def factor(logfactor, address: str = None):
         'logprob': logfactor
     })
 
+def estimate_moments(n_iter: int, K: int, model, *args, **kwargs):
+    collected_trace = defaultdict(list)
+    lps = np.zeros(n_iter)
+    for i in tqdm(range(n_iter)):
+        retval, lps[i], trace = model(*args, **kwargs)
+        #collected_trace['__RETVAL__'].append(retval)
+        for entry in trace.trace:
+            if entry['kind'] == 'sample':
+                collected_trace[entry['address']].append(entry["value"])
+
+    # normalise
+    m = np.max(lps)
+    lps = lps - (m + np.log(np.sum(np.exp(lps - m))))
+    p = np.exp(lps)
+
+    for (address, values) in collected_trace.items():
+        first = np.shape(values[0])
+        all_equal_shape = all(first == np.shape(x) for x in values)
+        assert all_equal_shape, f"Values for address {address} have varying shapes."
+        values = np.array(values) # (n_iter, *first)
+        print(address + ":")
+        sample_moment = p.dot(values)
+        for moment in range(1,K+1):
+            if moment == 1:
+                print(f"  E[X] ≈", sample_moment)
+            else:
+                print(f"  E[(X - mu)^{moment}] ≈", p.dot((values - sample_moment) ** moment))
+
+
+def IndexedAddress(base: str, *index):
+    if len(index) == 1:
+        return f"{base}[{index[0]}]"
+    i = ",".join(map(str, index))
+    return f"{base}[{i}]"
+
 
 class Vector:
     def __init__(self, n: int, t=None, fill=None):
@@ -116,3 +161,19 @@ class Vector:
         return self.list[key]
     def __setitem__(self, key, value):
         self.list[key] = value
+    def __repr__(self) -> str:
+        return "Vector(" + repr(self.list) + ")"
+
+
+class Array:
+    def __init__(self, shape: tuple[int], t=None, fill=None):
+        self.shape = shape
+        self.array = np.full(shape, fill)
+    def __len__(self):
+        return self.n
+    def __getitem__(self, key):
+        return self.array[key]
+    def __setitem__(self, key, value):
+        self.array[key] = value
+    def __repr__(self) -> str:
+        return "Array(" + repr(self.array) + ")"
