@@ -8,7 +8,9 @@ _TRACE = None
 class Trace:
     def __init__(self) -> None:
         self.trace = []
-        self.logprob = 0.
+        self.log_prior = 0.
+        self.log_likelihood = 0.
+        self.log_joint = 0.
         self.input = None
         self.retval = None
     def __repr__(self) -> str:
@@ -16,7 +18,9 @@ class Trace:
         for i, entry in enumerate(self.trace):
             s += f"{i}.: {entry}\n"
         s += f"retval={self.retval}\n"
-        s += f"logprob: {self.logprob}"
+        s += f"log prior: {self.log_prior}\n"
+        s += f"log likelihood: {self.log_likelihood}\n"
+        s += f"log joint: {self.log_joint}"
         return s
     def __getitem__(self, i):
         return self.trace[i]
@@ -39,15 +43,19 @@ def probabilistic_program(func):
         # run model function
         retval = func(*args, **kwargs)
 
-        # sum up log probabilities, i.e. logprob is joint probability of model p(X,Y=y)
-        logprob = sum(entry['logprob'] for entry in _TRACE.trace)
+        # sum up log probabilities, i.e. lp_jiont is joint probability of model p(X,Y=y)
+        lp_prior = sum(entry['logprob'] for entry in _TRACE.trace if entry["kind"] == "sample")
+        lp_lik = sum(entry['logprob'] for entry in _TRACE.trace if entry["kind"] != "sample")
+        lp_joint = lp_prior + lp_lik
 
         # store some more information
         _TRACE.input = (args, kwargs)
         _TRACE.retval = retval
-        _TRACE.logprob = logprob
+        _TRACE.log_prior = lp_prior
+        _TRACE.log_likelihood = lp_lik
+        _TRACE.log_joint = lp_joint
 
-        return retval, logprob, _TRACE
+        return retval, _TRACE
     
     return wrapper
 
@@ -119,7 +127,8 @@ def estimate_moments(n_iter: int, K: int, model, *args, **kwargs):
     collected_trace = defaultdict(list)
     lps = np.zeros(n_iter)
     for i in tqdm(range(n_iter)):
-        retval, lps[i], trace = model(*args, **kwargs)
+        retval, trace = model(*args, **kwargs)
+        lps[i] = trace.log_likelihood
         #collected_trace['__RETVAL__'].append(retval)
         for entry in trace.trace:
             if entry['kind'] == 'sample':
