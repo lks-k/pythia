@@ -15,7 +15,7 @@ model).
 
 - initialization of np.random.seed is presently ignored by the parser
 
-# Scala API
+# Scala API (outdated, we moved to Python)
 
 The easiest way to access the benchmark examples in Scala is to
 install the project's API library. It already contains all the files,
