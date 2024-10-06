@@ -14,6 +14,7 @@ def number_of_heads_model(data):
 # Translated code end.
 # Test data generated with:
 #   probability~0.01
+# FIXME: Getting the same error as with the burglary model.
 data = 100
 kernel = pyro.infer.NUTS(number_of_heads_model)
 mcmc = pyro.infer.MCMC(kernel, num_samples=1000, warmup_steps=100)

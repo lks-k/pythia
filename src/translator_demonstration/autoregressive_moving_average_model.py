@@ -1,3 +1,5 @@
+# FIXME: Is this model proper? The observed `err` is not as strictly dependant
+# on `y` as in other models.
 @probabilistic_program
 def autoregressive_moving_average_model(y):
     nu = Vector(len(y), fill=0, t=float)

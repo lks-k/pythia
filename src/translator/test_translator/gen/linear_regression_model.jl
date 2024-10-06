@@ -18,6 +18,7 @@ end
 # Test data generated with:
 #   intercept~1
 #   slope~0.5
+# FIXME: Doesn't really fit as well as the other frameworks do.
 xs = [0.93, 1.71, 2.61, 3.62, 4.12]
 ys = [1.32, 2.00, 2.55, 2.39, 3.14]
 __choicemap_aggregation(xs, ys)

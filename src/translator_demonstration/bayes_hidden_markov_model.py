@@ -1,3 +1,7 @@
+# FIXME: Is `K` needed, couldn't this be replaced with `length(y)`?
+# Changed `Dirichlet` such that it doesn't erroneously use `IID`.
+# Also changed the `DiscreteUniform`s upper bound to `K-1` (instead of `K`)
+# because of out-of-bounds errors otherwise.
 @probabilistic_program
 def bayes_hidden_markov_model(y, K):
     s = Vector(len(y), fill=0)  # State sequence.

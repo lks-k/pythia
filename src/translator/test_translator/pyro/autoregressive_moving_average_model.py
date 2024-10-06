@@ -9,7 +9,7 @@ def autoregressive_moving_average_model(y):
     phi = pyro.sample('phi', dist.Normal(0, 10))
     theta = pyro.sample('theta', dist.Normal(0, 10))
     sigma = pyro.sample('sigma', dist.HalfCauchy(2.5))
-    nu[0] = (mu) + ((phi) * (mu))
+    nu[0] = (mu) + ((phi) * (mu))  # FIXME: I think this is the problem because of in-place changes.
     err[0] = (y[0]) - (nu[0])
     for t in range(1, len(y), 1):
         nu[t] = ((mu) + ((phi) * (y[(t) - (1)]))) + ((theta) * (err[(t) - (1)]))
@@ -18,6 +18,7 @@ def autoregressive_moving_average_model(y):
 # Translated code end.
 # Test data generated with:
 #   y was generated with Normal(0, 3)
+# FIXME: Getting a weird error, couldn't figure out how to fix it.
 y = torch.tensor([-1.35, -3.5, -3.84, 0.71, -0.75, -0.12, 0.48, -0.7, 2.62, 6.95])
 kernel = pyro.infer.NUTS(autoregressive_moving_average_model)
 mcmc = pyro.infer.MCMC(kernel, num_samples=1000, warmup_steps=100)

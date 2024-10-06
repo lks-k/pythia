@@ -7,6 +7,7 @@ using Distributions
     T = fill(0, (K, K))
     for i = 0:1:(K)-1
         T[(i) + 1] = {"$("T")[$(i)]"} ~ dirichlet((1) / (K), K)
+        # T[(i)+1] = {"$("T")[$(i)]"} ~ dirichlet((1) / (K) * ones(K))  # FIXME: Doesn't work either, says: Cannot `convert` an object of type Vector{Float64} to a n object of type Float64
         m[(i) + 1] = {"$("m")[$(i)]"} ~ normal((i) + (1), 0.5)
     end
     s[(0) + 1] = {"$("s")[$(0)]"} ~ uniform_discrete(0, (K) - (1))
@@ -32,6 +33,10 @@ end
 # Test data generated with:
 #   s~[2,5,9,5,6,4,9,4,3,0]
 #   m~[1.17,2.30,2.44,4.63,4.73,4.99,6.01,7.80,9.74,11.03]
+# FIXME: Couldn't get `dirichlet` to run in Gen. It wants a vector as input but
+# throws an error that it's not a float when doing so. And it doesn't accept the
+# current input format either. (Documentation says vector, see:
+# https://www.gen.dev/docs/stable/api/model/distributions/)
 y = [2.49, 4.99, 10.95, 5.00, 5.88, 4.66, 10.97, 4.68, 4.44, 1.07]
 K = 10
 __choicemap_aggregation(y, K)

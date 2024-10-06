@@ -21,5 +21,7 @@ using Turing
     data ~ Dirac(called)
 end
 # Translated code end.
+# FIXME: This fails but I'm unsure why? Maybe because of the branched sample
+# statements? Getting: LoadError: InexactError: Bool(<some float>)
 observed = true
 display(sample(burglary_model(observed), NUTS(), 1000))

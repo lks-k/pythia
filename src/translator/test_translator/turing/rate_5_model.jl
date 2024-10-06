@@ -11,6 +11,7 @@ end
 # Translated code end.
 # Test data generated with:
 #   theta~0.6
+# FIXME: Doesn't really fit well.
 n1 = 10
 n2 = 15
 k1 = 7

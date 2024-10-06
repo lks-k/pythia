@@ -17,6 +17,7 @@ end
 #   alpha~14
 #   sigma~0.5
 #   beta~[-6.45,6.93,-2.48,-1.99,12.19]
+# FIXME: Inferred data doesn't really fit well. (It doesn't in Pyro either.)
 y = [0, 0, 0, 0, 0, 14.33, 113.59, 765.56, 5009.41, 32779.81, 214616.96, 1405379.32, 9202875.14, 60263095.70, 394619612.99, 2584079307.87, 16921272464.00, 110805215612.65, 725583483758.52, 4751323202301.19]
 K = 5
 display(sample(autoregressive_order_K_model(y, K), NUTS(), 1000))

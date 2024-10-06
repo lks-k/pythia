@@ -11,13 +11,16 @@ def gaussian_mixture_model(data):
     z = torch.full((len(data),), 0, dtype=float)
     for i in range(0, len(data), 1):
         z[i] = pyro.sample(f"{'z'}[{i}]", dist.Bernoulli(probability))
-        # pyro.sample(f"{'data'}[{i}]", dist.Normal(mu[z[i]], 1), obs=data[i])  # indexing with a tensor is not allowed.
+        # pyro.sample(f"{'data'}[{i}]", dist.Normal(mu[z[i]], 1), obs=data[i])  # FIXME: Indexing with a tensor is not allowed.
         pyro.sample(f"{'data'}[{i}]", dist.Normal(mu[int(z[i])], 1), obs=data[i])
 # Translated code end.
 # Test data generated with:
 #   probability~0.6
 #   mu~[-2.4,1.2]
 #   z~[0,1,0,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,0,0]
+# FIXME: Getting an error that assigning to `z[i]` is invalid because of
+# different tensor dimensions. Possibly because of the same error as in the
+# burglary model.
 data = torch.tensor([
     -1.64, 1.01, 0.01, 2.26, 0.40, -0.54, -2.15, -2.08, 1.31, 0.64,
     -3.30, -2.19, 2.90, 0.36, 1.16, 1.28, 1.67, 0.18, -2.25, -2.36

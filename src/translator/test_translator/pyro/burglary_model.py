@@ -19,6 +19,13 @@ def burglary_model(data):
     called = ((mary_wakes) == (1)) and ((phone_working) == (1))
     pyro.sample('observed', dist.Delta(torch.tensor(called)), obs=data)
 # Translated code end.
+# FIXME: Pyro's sample with Bernoulli sometimes returns multiple values. Making
+# this fail. Maybe because of "when any sample statement is observed, the
+# cumulative effect of every other sample statement in a model changes"? (See:
+# https://pyro.ai/examples/intro_long.html#Background:-the-pyro.sample-primitive)
+# Or NUTS and HMC only work for continuous variables? (See:
+# https://pyro.ai/examples/enumeration.html) Also tried
+# `@infer_discrete(first_available_dim=-1)` but didn't work either.
 data = torch.tensor(True)
 kernel = pyro.infer.NUTS(burglary_model)
 mcmc = pyro.infer.MCMC(kernel, num_samples=1000, warmup_steps=100)

@@ -18,5 +18,8 @@ end
 # Translated code end.
 # Test data generated with:
 #   y was generated with Normal(0, 3)
+# FIXME: Getting a weird error on line 10 on execution. Maybe a similar problem
+# as with Pyro about in-place changes? Couldn't figure out the problem and get
+# it to run.
 y = [-1.35, -3.5, -3.84, 0.71, -0.75, -0.12, 0.48, -0.7, 2.62, 6.95]
 display(sample(autoregressive_moving_average_model(y), NUTS(), 1000))

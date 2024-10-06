@@ -22,6 +22,7 @@ end
 # Translated code end.
 # Test data generated with:
 #   p~0.7
+# FIXME: Doesn't really fit as well as the other frameworks do.
 data = [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1]
 __choicemap_aggregation(data)
 (trace,) = importance_resampling(cointoss_model, (data,), __observe_constraints, 100000)

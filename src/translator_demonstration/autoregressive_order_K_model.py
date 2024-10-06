@@ -1,3 +1,4 @@
+# FIXME: Is this model correct? Since `sigma` may be negative.
 @probabilistic_program
 def autoregressive_order_K_model(y, K):
     alpha = sample("alpha", Normal(0, 10))
