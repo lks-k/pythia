@@ -15,6 +15,12 @@ using Distributions
     for i = 1:1:(length(y))-1
         __categorical__context__unique_address_1 = T[(s[((i) - (1))+1])+1, begin:1:end]
         s[(i)+1] = {"$("s")[$(i)]"} ~ labeled_categorical(0:length(__categorical__context__unique_address_1)-1, __categorical__context__unique_address_1)
+        # FIXME: Using `categorical` (code below) yields different results with
+        # the same seed than the translated code above, is this indicative of a
+        # problem? (See the same in Turing's translation.)
+        #
+        # s[(i)+1] = {"$("s")[$(i)]"} ~ categorical(__categorical__context__unique_address_1)  # changed
+        # s[(i)+1] = (0:length(__categorical__context__unique_address_1)-1)[s[(i)+1]]  # added, or use `-1`
         {"$("y")[$(i)]"} ~ normal(m[(s[(i)+1])+1], 0.1)
     end
 end
